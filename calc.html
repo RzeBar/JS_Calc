@@ -1,0 +1,232 @@
+<!-- 
+
+PROJEKT NA JĘZYKI SKRYPTOWE 2014 (JavaScript)
+
+Temat: F_CALC (formula calculator) 
+Autor: Bartłomiej Rzeszotarski
+
+Zasada działania: Program wyciąga ze stringa funkcje specjalne wraz z ich argumentami, następnie
+                  oblicza ich wartość na boku, po czym wkleja w miejsce tej funkcji już konkretną liczbę. 
+                  Resztą zajmuje sie eval.
+                  np. sin(3)+3 -[transformacja]-> 0.14+3 = 3.14
+
+ADNOTACJE:
+
+ad 1. Ograniczone potegowanie znakowe ** oraz ^: 
+	- nie obsluguja lancuchow typu 2^2^2
+	- nie obsluguja nawiasow 
+	- nie obsluguja liczb wielocyfrowych. 
+	Tylko proste 2^2 policzy
+
+ad 2. Brak ochrony przed "uzytkownikiem debilem"
+
+
+-->
+
+<table class="formcalc">
+
+	<tr>
+		<td>Wyrazenie:<td/><td><input class="formcalc" id="screen" type="text"></td>
+	</tr>
+	<tr>
+		<td>Wynik:<td/><td><output class="formcalc" id="outTest" type="text"></td>
+	</tr>
+	<tr>	
+		<td></td>
+		<td><input class="formcalc" type="button" value='Oblicz' onclick="calculate(document.getElementById('screen').value);"></td>
+		<td><input class="formcalc" type="button" value='Wyczysc' onclick="document.getElementById('screen').value='';document.getElementById('outTest').value='';"></td>
+	</tr>
+
+</table>
+
+
+<script>
+// Funkcja liczaca (główna)
+function calculate(formula) {
+
+	var equation = formula.split(' ').join(''); // czyszczenie spacji
+
+	console.log(equation); 
+	var equation = searchFunctions( equation ); // transformowanie funkcji "specjalnych" na liczby
+
+	console.log(equation); 
+	document.getElementById('outTest').value = eval(equation);// obliczanie wartosci i wypisanie wyniku
+
+}
+
+
+//Funkcja przeszukujące formule w poszukiwaniu funkcji "specjalnych"
+function searchFunctions(formula){
+
+	var equation = formula;
+
+	if( equation.indexOf("**") != -1 ){
+			var equation = powTransform(equation,"**");
+	}
+	if( equation.indexOf("^") != -1 ){
+			var equation = powTransform(equation,"^");
+	}
+	if( equation.indexOf("pow") != -1 ){
+			var equation = powTransform(equation,"pow");
+	}
+	if( equation.indexOf("asin") != -1 ){
+			var equation = Transform(equation,"asin");
+	}
+	if( equation.indexOf("acos") != -1 ){
+			var equation = Transform(equation,"acos");
+	}
+	if( equation.indexOf("atan") != -1 ){
+			var equation = Transform(equation,"atan");
+	}
+	if( equation.indexOf("sin") != -1 ){
+			var equation = Transform(equation,"sin");
+	}
+	if( equation.indexOf("cos") != -1 ){
+			var equation = Transform(equation,"cos");
+	}
+	if( equation.indexOf("tan") != -1 ){
+			var equation = Transform(equation,"tan");
+	}
+	if( equation.indexOf("sqrt") != -1 ){
+			var equation = Transform(equation,"sqrt");
+	}
+	if( equation.indexOf("log") != -1 ){
+			var equation = Transform(equation,"log");
+	}
+	if( equation.indexOf("exp") != -1 ){
+			var equation = Transform(equation,"exp");
+	}
+	if( equation.indexOf("abs") != -1 ){
+			var equation = Transform(equation,"abs");
+	}
+
+	return equation;
+
+}
+
+// Funkcja transformujaca wyrazenie na liczbe
+function Transform(formula,func){
+
+	var equation = formula;
+
+	var idxStart = equation.indexOf(func);
+
+	while( idxStart != -1 ){
+
+
+		var flen = func.length;
+		var arg = equation.substring(idxStart+flen+1); 
+
+		var idxStop = GetKetIdx(arg);
+		//console.log(idxStop); 
+		var arg = arg.slice(0,idxStop);
+		//console.log(arg); 
+		var arg = searchFunctions(arg); // sprawdzanie zagniezdzen
+
+		var arg = eval(arg);
+
+		var num = GetMathFunc(func,arg);
+		var numlen = num.length;
+		var equation = [equation.slice(0,idxStart),num,equation.slice(idxStart+flen+idxStop+2)].join('');
+
+		var idxStart = equation.indexOf(func,idxStart+numlen);
+	
+	}
+	return equation;
+}
+
+// zwraca index prawego nawiasu
+function GetKetIdx(arg){
+
+	var bra = arg.indexOf("(");
+	var ket = arg.indexOf(")");
+
+	while( bra < ket && bra != -1 ){
+		var bra = arg.indexOf("(",bra+1);
+		var ket = arg.indexOf(")",ket+1);
+		//console.log(bra+" "+ket);
+	}
+	return ket;
+}
+
+// możliwe do obliczenia funkcje "specjalne"
+function GetMathFunc(f,a){
+	if( f=="sin" ) return Math.sin(a);
+	if( f=="cos" ) return Math.cos(a);
+	if( f=="tan" ) return Math.tan(a);
+	if( f=="asin" ) return Math.asin(a);
+	if( f=="acos" ) return Math.acos(a);
+	if( f=="atan" ) return Math.atan(a);
+	if( f=="sqrt" ) return Math.sqrt(a);
+	if( f=="log" ) return Math.log(a);
+	if( f=="exp" ) return Math.exp(a);
+	if( f=="abs" ) return Math.abs(a);
+}
+
+function powTransform(formula,form){
+
+	var equation = formula;
+	//console.log("power!",form);
+	if(form == "**"){
+		var idx = equation.indexOf("**");
+		while( idx != -1 ){
+			var num = Math.pow(equation.charAt(idx-1),equation.charAt(idx+2));
+			var equation = [equation.slice(0,idx-1),num,equation.slice(idx+3)].join('');
+			var idx = equation.indexOf("**",idx);
+		}
+	}
+
+	if(form == "^"){
+		var idx = equation.indexOf("^");
+		while( idx != -1 ){
+			var num = Math.pow(equation.charAt(idx-1),equation.charAt(idx+1));
+			var equation = [equation.slice(0,idx-1),num,equation.slice(idx+2)].join('');
+			var idx = equation.indexOf("^",idx);
+		}
+	}
+
+	if(form == "pow"){
+		var idx = equation.indexOf("pow");
+		//console.log("power!",form);
+		while( idx != -1 ){
+			var argIdxStart = equation.indexOf("(",idx)+1;
+			var argIdxMid = equation.indexOf(",",argIdxStart);
+			var argIdxStop = equation.indexOf(")",argIdxMid);
+			//console.log(argIdxStart,argIdxMid,argIdxStop);
+
+			var arg1 = equation.slice(argIdxStart,argIdxMid); 
+			var arg2 = equation.slice(argIdxMid+1,argIdxStop); 
+
+			var arg1 = searchFunctions(arg1); // sprawdzanie zagniezdzen
+			var arg2 = searchFunctions(arg2); // sprawdzanie zagniezdzen
+
+			var arg1 = eval(arg1); 
+			var arg2 = eval(arg2); 
+
+			var num = Math.pow(arg1,arg2);
+			var equation = [equation.slice(0,idx),num,equation.slice(argIdxStop+1)].join('');
+
+			var idx = equation.indexOf("pow",idx);
+		}
+	}
+
+	return equation;
+}
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
